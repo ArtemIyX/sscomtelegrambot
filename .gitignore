@@ -1,0 +1,106 @@
+# Visual Studio and Rider generated files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.cache
+*.tmp
+*.log
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rchive/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nuget.props
+*.nuget.targets
+
+# .NET Core
+project.assets.json
+project.nuget.cache
+*.ncrunch*
+*crunch*.local.xml
+*.dotCover
+
+# Rider specific
+.idea/
+*.iml
+modules.xml
+*.iws
+*.ipr
+*.idea_modules/
+*.idea/*.xml
+*.idea/workspace.xml
+*.idea/tasks.xml
+*.idea/.name
+*.idea/.gitignore
+*.idea/**/dataSources.ids
+*.idea/**/dataSources.local.xml
+*.idea/**/sqlDataSources.xml
+*.idea/**/dynamic.xml
+*.idea/**/uiDesigner.xml
+*.idea/**/dbnavigator.xml
+*.idea/**/contentModel.xml
+*.idea/**/modules.xml
+*.idea/**/.idea.ReSharper.xml
+*.idea/**/riderModuleSettings.xml
+
+# VS Code (if you also use it, but optional)
+.vscode/
+*.code-workspace
+
+# C# specific
+*.pdb
+*.mdb
+*.exe
+*.dll
+*.cache
+*.ilk
+*.meta
+*.manifest
+*.res
+*.resources
+*.rc
+*.pch
+*.sbr
+*.tlb
+*.tlh
+*.tmp_proj
+*.vspscc
+*.vssscc
+*.scc
+*.vsp
+*.vspx
+*.sap
+
+# Testing
+[Tt]est[Rr]esult*/
+*.trx
+*.xml
+*.coverage
+*.coveragexml
+
+# Others
+[Dd]esktop.ini
+[Tt]humbs.db
+*.DS_Store
+*.bak
+*.swp
+*.tmp
+*~
