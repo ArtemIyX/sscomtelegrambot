@@ -69,21 +69,34 @@ public class TelegramBotHostedService : IHostedService
         if (string.IsNullOrEmpty(text) || !text.StartsWith('/'))
             return; // Only handle commands starting with /
 
-        _logger.LogInformation("[{cha}]: {message}", message.Chat.Id, text);
+        _logger.LogInformation("[{chat}]: {message}", message.Chat.Id, text);
 
         // Extract command (ignore parameters for simplicity)
         var command = text.Split(' ')[0];
 
         if (_commands.TryGetValue(command, out var handler))
         {
-            try
+            // Offload to background to avoid blocking the receiver
+            _ = Task.Run(async () =>
             {
-                await handler.HandleAsync(botClient, message, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error handling command {command}");
-            }
+                try
+                {
+                    await handler.HandleAsync(botClient, message, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error handling command {command} in background");
+                    // Optionally send error message in background
+                    try
+                    {
+                        await botClient.SendMessage(
+                            chatId: message.Chat.Id,
+                            text: $"Error: {ex.Message}",
+                            cancellationToken: cancellationToken);
+                    }
+                    catch { /* Ignore send failures in bg */ }
+                }
+            }, cancellationToken);
         }
         else
         {

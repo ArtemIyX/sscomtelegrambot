@@ -3,21 +3,21 @@ using SS.Data;
 
 namespace SS.Parser;
 
-public interface ISsWebFetcherService
+public interface IWebFetcherService
 {
-    public Task<ApartmentContainer> FetchApartments(ApartmentFilter filter,
+    public Task<ApartmentContainer> FetchApartments(ApartmentFilter? filter = null,
         CancellationToken cancellationToken = default);
 }
 
-public class SsWebFetcherService : ISsWebFetcherService
+public class WebFetcherService : IWebFetcherService
 {
-    private readonly ILogger<SsWebFetcherService> _logger;
+    private readonly ILogger<WebFetcherService> _logger;
     private readonly IApartmentParserService _apartmentParserService;
     private readonly IHttpClientFactory _httpClientFactory;
 
     private readonly string _searchUrl = @"https://www.ss.lv/en/real-estate/flats/riga/all/hand_over/";
 
-    public SsWebFetcherService(ILogger<SsWebFetcherService> logger,
+    public WebFetcherService(ILogger<WebFetcherService> logger,
         IApartmentParserService apartmentParserService,
         IHttpClientFactory httpClientFactory)
     {
@@ -26,7 +26,7 @@ public class SsWebFetcherService : ISsWebFetcherService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<ApartmentContainer> FetchApartments(ApartmentFilter filter,
+    public async Task<ApartmentContainer> FetchApartments(ApartmentFilter? filter = null,
         CancellationToken cancellationToken = default)
     {
         var container = new ApartmentContainer(); // Assume this is thread-safe or wrap in ConcurrentDictionary
@@ -44,7 +44,9 @@ public class SsWebFetcherService : ISsWebFetcherService
         }
 
         int firstPageHash = firstPageList.GetCombinedHashCode();
-        var filteredFirst = firstPageList.Where(apartment => apartment.MatchesFilter(filter));
+        var filteredFirst = (filter is null)
+            ? firstPageList
+            : firstPageList.Where(apartment => apartment.MatchesFilter(filter));
         foreach (var apartment in filteredFirst)
         {
             container.Add(apartment.Id, apartment);
@@ -107,7 +109,7 @@ public class SsWebFetcherService : ISsWebFetcherService
                     break;
                 }
 
-                var filtered = list.Where(apartment => apartment.MatchesFilter(filter));
+                var filtered = filter is null ? list : list.Where(apartment => apartment.MatchesFilter(filter));
                 foreach (var apartment in filtered)
                 {
                     container.Add(apartment.Id, apartment);
@@ -118,7 +120,6 @@ public class SsWebFetcherService : ISsWebFetcherService
 
             batchStart += concurrencyLevel;
         }
-
 
 
         return container;

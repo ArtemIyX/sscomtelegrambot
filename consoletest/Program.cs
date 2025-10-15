@@ -16,7 +16,7 @@ public class Program
         var host = CreateHostBuilder(args).Build();
         Task t = host.RunAsync();
         ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
-        ISsWebFetcherService fetcher = host.Services.GetRequiredService<ISsWebFetcherService>();
+        IWebFetcherService fetcher = host.Services.GetRequiredService<IWebFetcherService>();
         var container = await fetcher.FetchApartments(new ApartmentFilter()
         {
             MinPrice = 100,
@@ -29,10 +29,7 @@ public class Program
         {
             logger.LogInformation(apartment.Value.ToString());
         }
-
         
-        
-
         await t;
     }
 
@@ -59,6 +56,6 @@ public class Program
                     //AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Br
                 });
                 services.AddTransient<IApartmentParserService, ApartmentParserService>();
-                services.AddTransient<ISsWebFetcherService, SsWebFetcherService>();
+                services.AddTransient<IWebFetcherService, WebFetcherService>();
             });
 }

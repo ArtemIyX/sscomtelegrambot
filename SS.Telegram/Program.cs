@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SS.Parser;
 using SS.Telegram.Commands;
 using SS.Telegram.Interfaces;
 using SS.Telegram.Services;
@@ -21,7 +22,7 @@ public class Program
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-                config.AddUserSecrets<Program>();  // Loads user secrets
+                config.AddUserSecrets<Program>(); // Loads user secrets
             })
             .ConfigureServices((context, services) =>
             {
@@ -29,17 +30,24 @@ public class Program
                 var botToken = context.Configuration["Telegram:BotToken"];
                 if (string.IsNullOrEmpty(botToken))
                 {
-                    throw new InvalidOperationException("Telegram:BotToken is not configured. Set it via environment variables or other config sources.");
+                    throw new InvalidOperationException(
+                        "Telegram:BotToken is not configured. Set it via environment variables or other config sources.");
                 }
 
                 // Register Telegram bot client
                 services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken));
+
+                services.AddTransient<IApartmentParserService, ApartmentParserService>();
+                services.AddTransient<IWebFetcherService, WebFetcherService>();
+
+                services.AddSingleton<SSComService>();
 
                 // Register hosted service
                 services.AddHostedService<TelegramBotHostedService>();
 
                 // Register command handlers (add more as needed)
                 services.AddTransient<IBotCommandHandler, StartCommandHandler>();
-
+                services.AddTransient<IBotCommandHandler, RefreshCommandHandler>();
+                services.AddTransient<IBotCommandHandler, FilterCommandHandler>();
             });
 }

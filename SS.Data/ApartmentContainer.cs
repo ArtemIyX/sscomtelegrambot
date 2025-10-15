@@ -15,4 +15,7 @@ public class ApartmentContainer
     {
         Map[id] = apartment;
     }
+
+    public List<ApartmentModel> GetAll() => Map.Values.ToList();
+    public IEnumerable<ApartmentModel> Filter(ApartmentFilter filter) => Map.Values.Where(x => x.MatchesFilter(filter));
 }
