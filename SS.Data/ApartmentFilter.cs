@@ -121,9 +121,9 @@ public class ApartmentFilter
     // Optional: a nice ToString() for debugging / logging
     public override string ToString()
     {
-        return $"Price: {MinPrice}-{MaxPrice ?? (object)"∞"} | " +
-               $"Rooms: {(Rooms == null ? "any" : string.Join(",", Rooms))} | " +
-               $"Square: {MinSquare}-{MaxSquare ?? (object)"∞"} | " +
+        return $"Price: {MinPrice}-{MaxPrice ?? (object)"∞"}\n" +
+               $"Rooms: {(Rooms == null ? "any" : string.Join(",", Rooms))}\n" +
+               $"Square: {MinSquare}-{MaxSquare ?? (object)"∞"}\n" +
                $"Regions: {(Regions == null ? "any" : string.Join(",", Regions))}";
     }
 }

@@ -15,7 +15,7 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
     private string ToTelegramString(ApartmentModel apartmentModel)
     {
         return
-            $@"🏠 [{apartmentModel.Region}]({apartmentModel.Link}) 💰 {apartmentModel.PricePerMonth:0,0}€ | {apartmentModel.Area} m² | {apartmentModel.Rooms}r | {apartmentModel.Floor}f | {apartmentModel.Series}";
+            $@"🏠 [{apartmentModel.Region}]({apartmentModel.Link}) 💰 {apartmentModel.PricePerMonth:0,0}€ | {apartmentModel.Area} m² | {apartmentModel.PricePerSquare():0.#}€/m² | {apartmentModel.Rooms}r | {apartmentModel.Floor}f | {apartmentModel.Series}";
     }
 
 
@@ -76,13 +76,14 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
                 throw new Exception("Empty message text received");
             }
 
-            var split = message.Text.Split(' ');
-            if (split.Length < 2)
+            var split = message.Text.Split(' ').ToList();
+            if (split.Count < 2)
             {
-                throw new Exception("Not enough arguments received\n Try /filter 100-450;1,2;10-60;plyavnieki,purvciems,darzciems");
+                split.Add("100-400;1,2;30-60;plyavnieki,purvciems,darzciems");
+                //throw new Exception("Not enough arguments received\n Try /filter 100-450;1,2;10-60;plyavnieki,purvciems,darzciems");
             }
 
-            if (split.Length > 2)
+            if (split.Count > 2)
             {
                 throw new Exception("To many arguments received\n Try /filter 100-450;1,2;10-60;plyavnieki,purvciems,darzciems");
             }
@@ -97,7 +98,7 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
 
             await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: $"Filter:\n{filter}",
+                text: $"Filter: {argument}\n{filter.ToString()}",
                 cancellationToken: cancellationToken);
 
             var flatsByRegion = ssComService.Filter(filter);

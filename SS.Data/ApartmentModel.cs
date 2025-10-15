@@ -63,6 +63,18 @@ public class ApartmentModel : IEquatable<ApartmentModel>
         return true;
     }
 
+    public decimal PricePerSquare()
+    {
+        if (decimal.TryParse(Area, out decimal areaValue))
+        {
+            if(PricePerMonth != 0.0m)
+            {
+                return PricePerMonth/ areaValue;
+            }
+        }
+        return 0.0m;
+    }
+
     public string Id => Link.Split('/', StringSplitOptions.RemoveEmptyEntries)
         .LastOrDefault()?
         .Replace(".html", "") ?? string.Empty;
