@@ -21,7 +21,7 @@ public class SSComService : IAsyncDisposable
         _webFetcherService = webFetcherService;
     }
 
-    public IEnumerable<ApartmentModel> Filter(ApartmentFilter filter)
+    public IDictionary<string, IOrderedEnumerable<ApartmentModel>> Filter(ApartmentFilter filter)
     {
         if (_apartmentContainer is null)
         {

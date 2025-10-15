@@ -79,12 +79,12 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
             var split = message.Text.Split(' ');
             if (split.Length < 2)
             {
-                throw new Exception("Not enough arguments received");
+                throw new Exception("Not enough arguments received\n Try /filter 100-450;1,2;10-60;plyavnieki,purvciems,darzciems");
             }
 
             if (split.Length > 2)
             {
-                throw new Exception("To many arguments received");
+                throw new Exception("To many arguments received\n Try /filter 100-450;1,2;10-60;plyavnieki,purvciems,darzciems");
             }
 
             if (!ssComService.IsApartmentContainerInitialized)
@@ -100,17 +100,39 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
                 text: $"Filter:\n{filter}",
                 cancellationToken: cancellationToken);
 
-            IEnumerable<ApartmentModel> filtered = ssComService.Filter(filter);
+            var flatsByRegion = ssComService.Filter(filter);
 
-            List<string> str = filtered.Select(ToTelegramString).ToList();
-            var chunks = SplitIntoChunks(str);
-            foreach (var chunk in chunks)
+            if (flatsByRegion.Count == 0)
             {
                 await botClient.SendMessage(
                     chatId: message.Chat.Id,
-                    text: chunk,
-                    cancellationToken: cancellationToken,
-                    parseMode: ParseMode.Markdown);
+                    text: $"No flats found, try another filter",
+                    cancellationToken: cancellationToken);
+                return;
+            }
+
+            foreach (var region in flatsByRegion)
+            {
+                List<ApartmentModel> flats = region.Value.ToList();
+                if (flats.Count == 0)
+                {
+                    await botClient.SendMessage(
+                        chatId: message.Chat.Id,
+                        text: $"No flats in '{region.Key}",
+                        cancellationToken: cancellationToken);
+                    continue;
+                }
+
+                List<string> str = flats.Select(ToTelegramString).ToList();
+                var chunks = SplitIntoChunks(str);
+                foreach (var chunk in chunks)
+                {
+                    await botClient.SendMessage(
+                        chatId: message.Chat.Id,
+                        text: chunk,
+                        cancellationToken: cancellationToken,
+                        parseMode: ParseMode.Markdown);
+                }
             }
         }
         catch (Exception ex)
