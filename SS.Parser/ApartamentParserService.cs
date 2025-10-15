@@ -6,128 +6,115 @@ namespace SS.Parser;
 
 using SS.Data;
 
-public class ApartmentParserService
+public interface IApartmentParserService
 {
-    public List<ApartmentModel> ParseApartments(string htmlContent)
+    public Task<List<ApartmentModel>> ParseApartmentsAsync(string htmlContent,
+        CancellationToken cancellationToken = default);
+}
+
+public class ApartmentParserService : IApartmentParserService
+{
+    public Task<List<ApartmentModel>> ParseApartmentsAsync(string htmlContent,
+        CancellationToken cancellationToken = default)
     {
-        var apartments = new List<ApartmentModel>();
-        var doc = new HtmlDocument();
-        doc.LoadHtml(htmlContent);
+        return Task.Run(() =>
+        {
+            var apartments = new List<ApartmentModel>();
+            var doc = new HtmlDocument();
+            doc.LoadHtml(htmlContent);
 
-        // Find all apartment listings (div with class d8 or d8p)
-        var apartmentNodes =
-            doc.DocumentNode.SelectNodes("//div[contains(@class, 'd8') and not(contains(@class, 'd8p'))]");
+            cancellationToken.ThrowIfCancellationRequested();
 
-        if (apartmentNodes.Count == 0)
+            // Select all tr elements, filtering out header and banner rows
+            var rows = doc.DocumentNode.SelectNodes(
+                "//tr[starts-with(@id, 'tr_') and not(@id='head_line') and not(starts-with(@id, 'tr_bnr'))]");
+            if (rows != null)
+            {
+                foreach (var row in rows)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var tds = row.SelectNodes("td");
+                    if (tds == null || tds.Count < 9) continue;
+
+                    // Extract link from the description td (3rd td, index 2)
+                    var linkA = tds[2].SelectSingleNode(".//a[@class='am']");
+                    string link = linkA?.GetAttributeValue("href", "") ?? "";
+                    if (!string.IsNullOrEmpty(link))
+                    {
+                        link = "https://www.ss.lv" + link;
+                    }
+
+                    // Extract region from URL
+                    string region = "";
+                    try
+                    {
+                        var match = Regex.Match(link, @"/flats/riga/([^/]+)/");
+                        if (match.Success)
+                        {
+                            region = match.Groups[1].Value;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error extracting region from URL: {ex.Message}");
+                    }
+
+                    // Extract rooms (5th td, index 4, labeled "R.")
+                    string rooms = tds[4].InnerText.Trim();
+
+                    // Extract area (6th td, index 5, labeled "m²")
+                    string areaText = tds[5].InnerText.Trim();
+                    string area = areaText;
+                    decimal? areaValue = null;
+                    try
+                    {
+                        var areaMatch = Regex.Match(areaText, @"(\d+\.?\d*)");
+                        if (areaMatch.Success && decimal.TryParse(areaMatch.Groups[1].Value, out decimal a))
+                        {
+                            areaValue = a;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error parsing area: {ex.Message}");
+                    }
+
+                    // Extract floor (7th td, index 6)
+                    string floor = tds[6].InnerText.Trim();
+
+                    // Extract series (8th td, index 7)
+                    string series = tds[7].InnerText.Trim();
+
+                    // Extract price (9th td, index 8)
+                    string priceText = tds[8].InnerText.Trim();
+                    decimal price = 0.0m;
+                    if (priceText.Contains("€/mon."))
+                    {
+                        try
+                        {
+                            var pricePart = priceText.Split('€')[0].Trim();
+                            var priceStr = pricePart.Replace(" ", "").Replace(",", "");
+                            if (decimal.TryParse(priceStr, out decimal p))
+                            {
+                                price = p;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error parsing price: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        continue; // Skip if not a monthly price
+                    }
+
+                    apartments.Add(new ApartmentModel(region, rooms, area, floor, series, price, link));
+                }
+            }
+
             return apartments;
-
-        foreach (var node in apartmentNodes)
-        {
-            try
-            {
-                var apartment = ParseApartmentNode(node);
-
-                // Only add if price is per month (skip daily rates)
-                if (apartment.PricePerMonth.HasValue)
-                {
-                    apartments.Add(apartment);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log error and continue with next apartment
-                Console.WriteLine($"Error parsing apartment: {ex.Message}");
-            }
-        }
-
-        return apartments;
-    }
-
-    private ApartmentModel ParseApartmentNode(HtmlNode node)
-    {
-        var apartment = new ApartmentModel();
-
-        // Extract Region
-        var regionNode = node.SelectSingleNode(".//div[@class='d5']//td[@opt='1']");
-        apartment.Region = regionNode?.InnerText.Trim();
-
-        // Extract Link
-        HtmlNode linkNode = node.SelectSingleNode(".//a[contains(@class, 'am4')]");
-        if (linkNode is not null)
-        {
-            apartment.Link = linkNode.GetAttributeValue("href", "");
-        }
-
-        // Extract properties (Rooms, Area, Floor, Series)
-        var propertyRows = node.SelectNodes(".//div[@class='d11']//tr");
-        if (propertyRows != null)
-        {
-            foreach (var row in propertyRows)
-            {
-                var labelNode = row.SelectSingleNode("./td[@class='td1812']");
-                var valueNode = row.SelectSingleNode("./td[@opt='1']");
-
-                if (labelNode == null || valueNode == null)
-                    continue;
-
-                var label = labelNode.InnerText.Trim().TrimEnd(':');
-                var value = valueNode.InnerText.Trim();
-
-                switch (label)
-                {
-                    case "R":
-                    case "R.":
-                        apartment.Rooms = value;
-                        break;
-                    case "m²":
-                    case "mÂ²":
-                        apartment.Area = value;
-                        break;
-                    case "Floor":
-                        apartment.Floor = value;
-                        break;
-                    case "Series":
-                        apartment.Series = value;
-                        break;
-                }
-            }
-        }
-
-        // Extract Price
-        var priceNode = node.SelectSingleNode(".//div[@class='d10']");
-        if (priceNode != null)
-        {
-            var priceText = priceNode.InnerText.Trim();
-            apartment.PricePerMonth = ParsePrice(priceText);
-        }
-
-        return apartment;
-    }
-
-    private decimal? ParsePrice(string priceText)
-    {
-        // Skip daily rates
-        if (priceText.Contains("/day"))
-            return null;
-
-        // Extract price per month
-        if (priceText.Contains("/mon"))
-        {
-            // Remove "/mon." and currency symbol
-            var priceMatch = Regex.Match(priceText, @"([\d,]+)\s*€/mon");
-
-            if (priceMatch.Success)
-            {
-                // Remove thousand separator (comma) and parse
-                var priceString = priceMatch.Groups[1].Value.Replace(",", "");
-
-                if (decimal.TryParse(priceString, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal price))
-                {
-                    return price;
-                }
-            }
-        }
-
-        return null;
+        }, cancellationToken);
     }
 }

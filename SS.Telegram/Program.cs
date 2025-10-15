@@ -25,6 +25,7 @@ public class Program
             })
             .ConfigureServices((context, services) =>
             {
+                services.AddHttpClient();
                 var botToken = context.Configuration["Telegram:BotToken"];
                 if (string.IsNullOrEmpty(botToken))
                 {
