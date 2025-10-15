@@ -22,7 +22,6 @@ public class Program
             MinPrice = 100,
             MaxPrice = 350,
             MinSquare = 35,
-            Regions = ["Plyavnieki"],
             Rooms = [2]
         });
 

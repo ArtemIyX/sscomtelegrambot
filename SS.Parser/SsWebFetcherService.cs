@@ -29,43 +29,97 @@ public class SsWebFetcherService : ISsWebFetcherService
     public async Task<ApartmentContainer> FetchApartments(ApartmentFilter filter,
         CancellationToken cancellationToken = default)
     {
-        ApartmentContainer container = new ApartmentContainer();
-        int index = 1;
-        int firstPargeHash = 0;
+        var container = new ApartmentContainer(); // Assume this is thread-safe or wrap in ConcurrentDictionary
+
+        const int concurrencyLevel = 10;
+        var semaphore = new SemaphoreSlim(concurrencyLevel);
+
+        // Step 1: Fetch page 1 sequentially
+        _logger.LogInformation("Fetching page 1 sequentially");
+        var firstPageList = await FetchSinglePage(1, cancellationToken);
+        if (firstPageList == null || firstPageList.Count == 0)
+        {
+            _logger.LogInformation("Page 1 failed or empty, finishing");
+            return container;
+        }
+
+        int firstPageHash = firstPageList.GetCombinedHashCode();
+        var filteredFirst = firstPageList.Where(apartment => apartment.MatchesFilter(filter));
+        foreach (var apartment in filteredFirst)
+        {
+            container.Add(apartment.Id, apartment);
+        }
+
+        // Step 2: Parallel fetch subsequent pages in batches
+        int batchStart = 2;
         while (true)
         {
-            _logger.LogInformation("Trying to fetch apartments, page {page}", index);
-            if (cancellationToken.IsCancellationRequested)
-                break;
-            List<ApartmentModel>? list = await FetchSinglePage(index, cancellationToken);
-            if (list == null) break;
-            if (list.Count == 0)
+            if (cancellationToken.IsCancellationRequested) break;
+
+            var tasks = new List<Task<(int Page, List<ApartmentModel>? List)>>();
+            var batchSize = 0;
+            for (int page = batchStart; page < batchStart + concurrencyLevel; page++)
             {
-                _logger.LogInformation("Page {index} has no flats, finishing", index);
-                break;
+                if (cancellationToken.IsCancellationRequested) break;
+                await semaphore.WaitAsync(cancellationToken); // Limit concurrency
+                batchSize++;
+                var currentPage = page; // Capture for lambda
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        var list = await FetchSinglePage(currentPage, cancellationToken);
+                        return (currentPage, list);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }, cancellationToken));
             }
 
-            if (firstPargeHash == 0)
+            if (batchSize == 0) break;
+
+            var results = await Task.WhenAll(tasks);
+            bool stop = false;
+
+            // Process batch results sequentially to enforce order and stopping
+            foreach (var (page, list) in results.OrderBy(r => r.Page))
             {
-                firstPargeHash = list.GetCombinedHashCode();
-            }
-            else
-            {
-                if (firstPargeHash == list.GetCombinedHashCode())
+                if (list == null)
                 {
-                    _logger.LogInformation("Page {index} has same flats as first page, finishing", index);
+                    _logger.LogWarning("Page {page} failed, skipping", page);
+                    continue; // Or treat as stop?
+                }
+
+                if (list.Count == 0)
+                {
+                    _logger.LogInformation("Page {page} has no flats, finishing", page);
+                    stop = true;
                     break;
+                }
+
+                if (list.GetCombinedHashCode() == firstPageHash)
+                {
+                    _logger.LogInformation("Page {page} has same flats as first page, finishing", page);
+                    stop = true;
+                    break;
+                }
+
+                var filtered = list.Where(apartment => apartment.MatchesFilter(filter));
+                foreach (var apartment in filtered)
+                {
+                    container.Add(apartment.Id, apartment);
                 }
             }
 
-            var filtered = list.Where(apartment => apartment.MatchesFilter(filter));
-            foreach (var apartment in filtered)
-            {
-                container.Add(apartment.Id, apartment);
-            }
+            if (stop) break;
 
-            index++;
+            batchStart += concurrencyLevel;
         }
+
+
 
         return container;
     }
