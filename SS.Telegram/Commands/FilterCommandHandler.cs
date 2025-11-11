@@ -14,8 +14,13 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
 
     private string ToTelegramString(ApartmentModel apartmentModel)
     {
+        string newStr = string.Empty;
+        if (ssComService.IsNew(apartmentModel.Id))
+        {
+            newStr = "➕ ";
+        }
         return
-            $@"🏠 [{apartmentModel.Region}]({apartmentModel.Link}) 💰 {apartmentModel.PricePerMonth:0,0}€ | {apartmentModel.Area} m² | {apartmentModel.PricePerSquare():0.#}€/m² | {apartmentModel.Rooms}r | {apartmentModel.Floor}f | {apartmentModel.Series}";
+            $@"{newStr}🏠 [{apartmentModel.Region}]({apartmentModel.Link}) 💰 {apartmentModel.PricePerMonth:0,0}€ | {apartmentModel.Area} m² | {apartmentModel.PricePerSquare():0.#}€/m² | {apartmentModel.Rooms}r | {apartmentModel.Floor}f | {apartmentModel.Series}";
     }
 
 
@@ -125,7 +130,7 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
                 }
 
                 List<string> str = flats.Select(ToTelegramString).ToList();
-                var chunks = SplitIntoChunks(str);
+                List<string> chunks = SplitIntoChunks(str);
                 foreach (var chunk in chunks)
                 {
                     await botClient.SendMessage(
