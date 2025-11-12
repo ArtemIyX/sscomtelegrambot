@@ -1,0 +1,50 @@
+﻿version: "3.9"
+
+# -------------------------------------------------
+# Bridge network (isolated, containers see each other)
+# -------------------------------------------------
+networks:
+  appnet:
+    driver: bridge
+
+# -------------------------------------------------
+services:
+  # ----- PostgreSQL -----
+  db:
+    image: postgres:16-alpine
+    container_name: ss_notifier_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "appuser"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: SuperSecret123!
+      POSTGRES_DB: notifierdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - appnet
+    ports:
+      - "5432:5432"   # only for local dev tools (pgAdmin, DBeaver, etc.)
+
+  # ----- Notifier App -----
+  ss.notifier:
+    image: ss.notifier:latest
+    build:
+      context: .
+      dockerfile: SS.Notifier/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # <-- THIS IS THE CORRECT CONNECTION STRING -->
+      - ConnectionStrings__Postgres=Host=db;Database=notifierdb;Username=appuser;Password=SuperSecret123!
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - appnet
+
+volumes:
+  pgdata:

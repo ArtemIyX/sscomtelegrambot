@@ -1,6 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using SS.Notifier.Data;
 
 namespace SS.Notifier;
 
@@ -9,6 +12,34 @@ public class Program
     public static async Task Main(string[] args)
     {
         var host = CreateHostBuilder(args).Build();
+
+        // Wait for database connection and apply migrations
+        using (var scope = host.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            var logger = services.GetRequiredService<ILogger<Program>>();
+
+            try
+            {
+                logger.LogInformation("Connecting to database...");
+                var context = services.GetRequiredService<NotifierDbContext>();
+
+                // Test connection
+                await context.Database.CanConnectAsync();
+                logger.LogInformation("Database connection successful");
+
+                // Apply migrations
+                logger.LogInformation("Applying database migrations...");
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Database migrations applied successfully");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while connecting to the database or applying migrations");
+                throw;
+            }
+        }
+
         await host.RunAsync();
     }
 
@@ -17,10 +48,17 @@ public class Program
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                config.AddEnvironmentVariables();
                 config.AddUserSecrets<Program>(); // Loads user secrets
             })
             .ConfigureServices((context, services) =>
             {
                 services.AddHttpClient();
+
+                // Connection string comes from environment variable (set in docker-compose)
+                var connStr = context.Configuration.GetConnectionString("Postgres")
+                              ?? throw new InvalidOperationException("Missing connection string");
+                
+                services.AddDbContext<NotifierDbContext>(opt => opt.UseNpgsql(connStr));
             });
 }
