@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SS.Notifier.Data;
+using SS.Notifier.Data.Entity;
+using SS.Notifier.Data.Repository;
 
 namespace SS.Notifier;
 
@@ -60,5 +62,6 @@ public class Program
                               ?? throw new InvalidOperationException("Missing connection string");
                 
                 services.AddDbContext<NotifierDbContext>(opt => opt.UseNpgsql(connStr));
+                services.AddTransient<IRepository<ApartmentEntity, string>, ApartmentRepository>();
             });
 }

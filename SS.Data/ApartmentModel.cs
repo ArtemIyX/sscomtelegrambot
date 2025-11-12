@@ -1,4 +1,6 @@
-﻿namespace SS.Data;
+﻿using System.Globalization;
+
+namespace SS.Data;
 
 public class ApartmentModel : IEquatable<ApartmentModel>
 {
@@ -63,21 +65,27 @@ public class ApartmentModel : IEquatable<ApartmentModel>
         return true;
     }
 
+    public decimal ParseArea() => decimal.Parse(Area, CultureInfo.InvariantCulture);
+
     public decimal PricePerSquare()
     {
-        if (decimal.TryParse(Area, out decimal areaValue))
+        if (decimal.TryParse(Area, CultureInfo.InvariantCulture, out decimal areaValue))
         {
-            if(PricePerMonth != 0.0m)
+            if (PricePerMonth != 0.0m)
             {
-                return PricePerMonth/ areaValue;
+                return PricePerMonth / areaValue;
             }
         }
+
         return 0.0m;
     }
+
+    public int ParseRooms() => int.Parse(Rooms, CultureInfo.InvariantCulture);
 
     public string Id => Link.Split('/', StringSplitOptions.RemoveEmptyEntries)
         .LastOrDefault()?
         .Replace(".html", "") ?? string.Empty;
+
 
     public override string ToString()
     {
@@ -114,5 +122,29 @@ public class ApartmentModel : IEquatable<ApartmentModel>
                Series == other.Series &&
                PricePerMonth == other.PricePerMonth &&
                Link == other.Link;
+    }
+
+    public int ParseFloor()
+    {
+        if (string.IsNullOrWhiteSpace(Floor))
+            return 0;
+
+        var parts = Floor.Split('/');
+        if (parts.Length > 0 && int.TryParse(parts[0].Trim(), out int floor))
+            return floor;
+
+        return 0;
+    }
+
+    public int ParseMaxFloor()
+    {
+        if (string.IsNullOrWhiteSpace(Floor))
+            return 0;
+
+        var parts = Floor.Split('/');
+        if (parts.Length > 1 && int.TryParse(parts[1].Trim(), out int maxFloor))
+            return maxFloor;
+
+        return 0;
     }
 }
