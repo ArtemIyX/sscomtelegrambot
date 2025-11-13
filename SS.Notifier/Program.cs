@@ -63,7 +63,13 @@ public class Program
                 Region = "purvciems",
                 Rooms = 1,
                 Series = "Sm.fam."
-            }, new List<string>());
+            }, new List<string>()
+            {
+                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356870.800.jpg",
+                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356871.800.jpg",
+                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356872.800.jpg",
+                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356873.800.jpg"
+            });
         }
 
 
