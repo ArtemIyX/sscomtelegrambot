@@ -3,9 +3,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SS.Notifier.Data;
 using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Repository;
+using SS.Notifier.Data.Settings;
 using SS.Notifier.Services;
 
 namespace SS.Notifier;
@@ -14,18 +16,18 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var host = CreateHostBuilder(args).Build();
+        IHost host = CreateHostBuilder(args).Build();
 
         // Wait for database connection and apply migrations
         using (var scope = host.Services.CreateScope())
         {
-            var services = scope.ServiceProvider;
-            var logger = services.GetRequiredService<ILogger<Program>>();
+            IServiceProvider services = scope.ServiceProvider;
+            ILogger<Program> logger = services.GetRequiredService<ILogger<Program>>();
 
             try
             {
                 logger.LogInformation("Connecting to database...");
-                var context = services.GetRequiredService<NotifierDbContext>();
+                NotifierDbContext context = services.GetRequiredService<NotifierDbContext>();
 
                 // Test connection
                 await context.Database.CanConnectAsync();
@@ -41,11 +43,20 @@ public class Program
                 logger.LogError(ex, "An error occurred while connecting to the database or applying migrations");
                 throw;
             }
-            var botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
-            logger.LogWarning("BOT_TOKEN is set to: " + botToken);
+
+            string? botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
+            logger.LogInformation("BOT_TOKEN={token}", botToken);
+
+            AppSettings appSettings = services.GetRequiredService<IOptions<AppSettings>>().Value;
+
+            logger.LogInformation("Chat num: {n}", appSettings.Chats.Count);
+            foreach (KeyValuePair<string, long> kvp in appSettings.Chats)
+            {
+                logger.LogInformation("Chat '{name}' is '{chatId}'", kvp.Key, kvp.Value);
+            }
         }
 
-        
+
         await host.RunAsync();
     }
 
@@ -53,9 +64,10 @@ public class Program
         Host.CreateDefaultBuilder(args)
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
-                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-                config.AddEnvironmentVariables();
-                config.AddUserSecrets<Program>(); // Loads user secrets
+                config
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                    .AddEnvironmentVariables()
+                    .AddUserSecrets<Program>(); // Loads user secrets
             })
             .ConfigureServices((context, services) =>
             {
@@ -64,7 +76,7 @@ public class Program
                 // Connection string comes from environment variable (set in docker-compose)
                 var connStr = context.Configuration.GetConnectionString("Postgres")
                               ?? throw new InvalidOperationException("Missing connection string");
-                
+                services.Configure<AppSettings>(context.Configuration);
                 services.AddDbContext<NotifierDbContext>(opt => opt.UseNpgsql(connStr));
                 services.AddTransient<IRepository<ApartmentEntity, string>, ApartmentRepository>();
                 services.AddTransient<IApartmentService, ApartmentService>();
