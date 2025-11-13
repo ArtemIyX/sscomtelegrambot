@@ -10,6 +10,7 @@ using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Repository;
 using SS.Notifier.Data.Settings;
 using SS.Notifier.Services;
+using Telegram.Bot;
 
 namespace SS.Notifier;
 
@@ -48,13 +49,21 @@ public class Program
             string? botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
             logger.LogInformation("BOT_TOKEN={token}", botToken);
 
-            AppSettings appSettings = services.GetRequiredService<IOptions<AppSettings>>().Value;
-
-            logger.LogInformation("Chat num: {n}", appSettings.Chats.Count);
-            foreach (KeyValuePair<string, long> kvp in appSettings.Chats)
+            ITelegramBotService telegramBot = services.GetRequiredService<ITelegramBotService>();
+            
+            Task t = telegramBot.SendApartment(new ApartmentEntity()
             {
-                logger.LogInformation("Chat '{name}' is '{chatId}'", kvp.Key, kvp.Value);
-            }
+                Id = "cejdec",
+                Area = 40.0m,
+                CreatedAt = DateTime.Now,
+                Floor = 3,
+                MaxFloor = 5,
+                Link = "https://www.ss.lv/msg/en/real-estate/flats/riga/purvciems/cejdec.html",
+                Price = 400.0m,
+                Region = "purvciems",
+                Rooms = 1,
+                Series = "Sm.fam."
+            }, new List<string>());
         }
 
 
@@ -79,7 +88,16 @@ public class Program
             })
             .ConfigureServices((context, services) =>
             {
-                services.AddHttpClient();
+                services.AddHttpClient("telegram")
+                    .AddTypedClient<ITelegramBotClient>((httpClient, sp) =>
+                    {
+                        string? botToken = Environment.GetEnvironmentVariable("BOT_TOKEN")
+                                           ?? throw new InvalidOperationException(
+                                               "BOT_TOKEN environment variable is not set");
+
+                        TelegramBotClientOptions options = new(botToken);
+                        return new TelegramBotClient(options, httpClient);
+                    });
 
                 // Connection string comes from environment variable (set in docker-compose)
                 var connStr = context.Configuration.GetConnectionString("Postgres")
@@ -88,5 +106,6 @@ public class Program
                 services.AddDbContext<NotifierDbContext>(opt => opt.UseNpgsql(connStr));
                 services.AddTransient<IRepository<ApartmentEntity, string>, ApartmentRepository>();
                 services.AddTransient<IApartmentService, ApartmentService>();
+                services.AddSingleton<ITelegramBotService, TelegramBotService>();
             });
 }
