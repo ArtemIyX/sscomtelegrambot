@@ -17,6 +17,7 @@ public class Program
         Task t = host.RunAsync();
         ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
         IWebFetcherService fetcher = host.Services.GetRequiredService<IWebFetcherService>();
+        IApartmentParserService parser = host.Services.GetRequiredService<IApartmentParserService>();
         var container = await fetcher.FetchApartments(new ApartmentFilter()
         {
             MinPrice = 100,
@@ -28,6 +29,18 @@ public class Program
         foreach (var apartment in container.Map)
         {
             logger.LogInformation(apartment.Value.ToString());
+        }
+        
+        var httpClient = new  HttpClient();
+        var html =await httpClient.GetAsync("https://www.ss.lv/msg/en/real-estate/flats/riga/mezhciems/bepghe.html#photo-1");
+        
+        List<string> photoUrl =
+           await parser.ParseApartmentPhotoAsync(
+               await html.Content.ReadAsStringAsync());
+        logger.LogInformation("URLs: ");
+        foreach (var url in photoUrl)
+        {
+            logger.LogInformation(url);
         }
         
         await t;

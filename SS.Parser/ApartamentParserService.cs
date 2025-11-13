@@ -10,10 +10,48 @@ public interface IApartmentParserService
 {
     public Task<List<ApartmentModel>> ParseApartmentsAsync(string htmlContent,
         CancellationToken cancellationToken = default);
+
+    public Task<List<string>> ParseApartmentPhotoAsync(string htmlContent, CancellationToken cancellationToken = default);
 }
 
 public class ApartmentParserService : IApartmentParserService
 {
+    public Task<List<string>> ParseApartmentPhotoAsync(string htmlContent, CancellationToken cancellationToken = default)
+    {
+        // Run parsing off the main thread to avoid blocking
+        return Task.Run(() =>
+        {
+            var photoUrls = new List<string>();
+        
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(htmlContent);
+        
+            // Find all divs with class "pic_dv_thumbnail"
+            var thumbnailDivs = htmlDoc.DocumentNode.SelectNodes("//div[@class='pic_dv_thumbnail']");
+        
+            if (thumbnailDivs != null)
+            {
+                foreach (var div in thumbnailDivs)
+                {
+                    // Find the <a> tag within each div and get its href attribute
+                    var anchorNode = div.SelectSingleNode(".//a[@href]");
+                
+                    if (anchorNode != null)
+                    {
+                        var href = anchorNode.GetAttributeValue("href", string.Empty);
+                    
+                        if (!string.IsNullOrWhiteSpace(href))
+                        {
+                            photoUrls.Add(href);
+                        }
+                    }
+                }
+            }
+        
+            return photoUrls;
+
+        }, cancellationToken);
+    }
     public Task<List<ApartmentModel>> ParseApartmentsAsync(string htmlContent,
         CancellationToken cancellationToken = default)
     {
