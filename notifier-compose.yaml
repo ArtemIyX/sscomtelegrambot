@@ -37,9 +37,9 @@ services:
       context: .
       dockerfile: SS.Notifier/Dockerfile
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      # <-- THIS IS THE CORRECT CONNECTION STRING -->
       - ConnectionStrings__Postgres=Host=db;Database=notifierdb;Username=appuser;Password=SuperSecret123!
+    env_file:
+      - SS.Notifier/.env
     depends_on:
       db:
         condition: service_healthy

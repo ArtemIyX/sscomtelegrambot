@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SS.Notifier.Data;
 using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Repository;
+using SS.Notifier.Services;
 
 namespace SS.Notifier;
 
@@ -40,8 +41,11 @@ public class Program
                 logger.LogError(ex, "An error occurred while connecting to the database or applying migrations");
                 throw;
             }
+            var botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
+            logger.LogWarning("BOT_TOKEN is set to: " + botToken);
         }
 
+        
         await host.RunAsync();
     }
 
@@ -63,5 +67,6 @@ public class Program
                 
                 services.AddDbContext<NotifierDbContext>(opt => opt.UseNpgsql(connStr));
                 services.AddTransient<IRepository<ApartmentEntity, string>, ApartmentRepository>();
+                services.AddTransient<IApartmentService, ApartmentService>();
             });
 }

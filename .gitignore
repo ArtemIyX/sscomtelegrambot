@@ -105,3 +105,8 @@ modules.xml
 *.tmp
 *~
 .vs
+
+# Environment variables
+.env
+.env.local
+.env.*.local
