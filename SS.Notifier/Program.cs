@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
 using SS.Notifier.Data;
 using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Repository;
@@ -62,6 +63,13 @@ public class Program
 
     private static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
+            .UseSerilog((hostingContext, services, loggerConfiguration) =>
+            {
+                loggerConfiguration
+                    .ReadFrom.Configuration(hostingContext.Configuration)
+                    .ReadFrom.Services(services)
+                    .Enrich.FromLogContext();
+            })
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 config
