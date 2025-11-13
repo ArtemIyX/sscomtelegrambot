@@ -51,9 +51,9 @@ public static class ApartmentExtensions
         string series = string.IsNullOrWhiteSpace(entity.Series) ? "none" : Escape(entity.Series);
 
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"💰 *Price:* {entity.Price:N0} €"); 
+        sb.AppendLine($"💶 *Price:* {entity.Price:N0} €"); 
         sb.AppendLine($"📐 *Area:* {entity.Area} m²"); 
-        sb.AppendLine($"💸 *Price/m:* {entity.Price / entity.Area:N0} €"); 
+        sb.AppendLine($"💰 *Price/m:* {entity.Price / entity.Area:N0} €"); 
         sb.AppendLine();
         sb.AppendLine($"🛏 *Rooms:* {entity.Rooms}");
         sb.AppendLine($"🏢 *Floor:*  {entity.Floor} / {entity.MaxFloor}"); 
