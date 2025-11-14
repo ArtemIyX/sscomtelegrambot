@@ -8,9 +8,13 @@
       <UserSecretsId>d37f3090-2749-44f6-8e8c-0dd67383698f</UserSecretsId>
       <ApplicationIcon>flats--rent.ico</ApplicationIcon>
       <Version>1.0.1</Version>
+      <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
     <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
       <Content Include="flats--rent.ico" />
     </ItemGroup>
 

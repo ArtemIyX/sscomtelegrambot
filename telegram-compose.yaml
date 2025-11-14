@@ -1,0 +1,8 @@
+﻿services:
+  ss.telegram:
+    image: ss.telegram
+    build:
+      context: .
+      dockerfile: SS.Telegram/Dockerfile
+    env_file:
+      - SS.Telegram/.env

@@ -13,6 +13,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BEBD06A0-843F-44A5-8FA8-D66A4D69F87E}"
 	ProjectSection(SolutionItems) = preProject
 		notifier-compose.yaml = notifier-compose.yaml
+		telegram-compose.yaml = telegram-compose.yaml
 	EndProjectSection
 EndProject
 Global

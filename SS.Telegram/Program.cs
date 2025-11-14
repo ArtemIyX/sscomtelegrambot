@@ -14,6 +14,7 @@ public class Program
     public static async Task Main(string[] args)
     {
         var host = CreateHostBuilder(args).Build();
+        
         await host.RunAsync();
     }
 
@@ -22,12 +23,13 @@ public class Program
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                config.AddEnvironmentVariables();
                 config.AddUserSecrets<Program>(); // Loads user secrets
             })
             .ConfigureServices((context, services) =>
             {
                 services.AddHttpClient();
-                var botToken = context.Configuration["Telegram:BotToken"];
+                var botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
                 if (string.IsNullOrEmpty(botToken))
                 {
                     throw new InvalidOperationException(

@@ -17,7 +17,7 @@ public class FilterCommandHandler(SSComService ssComService) : IBotCommandHandle
         string newStr = string.Empty;
         if (ssComService.IsNew(apartmentModel.Id))
         {
-            newStr = "➕ ";
+            newStr = "✅ ";
         }
         return
             $@"{newStr}🏠 [{apartmentModel.Region}]({apartmentModel.Link}) 💰 {apartmentModel.PricePerMonth:0,0}€ | {apartmentModel.Area} m² | {apartmentModel.PricePerSquare():0.#}€/m² | {apartmentModel.Rooms}r | {apartmentModel.Floor}f | {apartmentModel.Series}";
