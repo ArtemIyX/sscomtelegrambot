@@ -17,22 +17,40 @@ public class UpdaterHostedService(
     IWebFetcherService webFetcherService,
     IOptions<AppSettings> appSettings) : IHostedService
 {
+    private readonly TimeSpan _interval = TimeSpan.FromHours(1);
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting updater");
-        await Update(cancellationToken);
+        logger.LogInformation("Starting updater...");
+
+        await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                logger.LogInformation("Processing update...");
+                await Update(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to update");
+            }
+
+            // Wait exactly one hour for the next tick
+            await Task.Delay(_interval, cancellationToken);
+        }
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         logger.LogWarning("Updater is shutting down");
+        return Task.CompletedTask;
     }
 
     protected async Task Update(CancellationToken cancellationToken = default)
     {
         try
         {
-            logger.LogInformation("Updating...");
             AppSettings.ApartmentFilter appFilter = appSettings.Value.Filter;
 
             logger.LogInformation("Fetching apartments from ss.com, filter:\n{filter}",
@@ -50,7 +68,7 @@ public class UpdaterHostedService(
                     MinSquare = appFilter.MinArea,
                     MaxSquare = appFilter.MaxArea,
                     Rooms = appFilter.Rooms,
-                    Regions = appSettings.Value.Regions,
+                    Regions = appSettings.Value.Telegram.Regions,
                 }, cancellationToken: cancellationToken);
 
             logger.LogInformation("Found {num} apartments in RIGA", apartmentContainer.Map.Count);
@@ -123,7 +141,7 @@ public class UpdaterHostedService(
         }
 
         logger.LogInformation("'{id}': {n} photos have been fetched", entity.Id, photos.Count);
-        
+
         await telegramBotService.SendApartment(entity, photos, cancellationToken);
     }
 }

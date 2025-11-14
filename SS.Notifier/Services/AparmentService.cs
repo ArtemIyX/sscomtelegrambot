@@ -4,6 +4,7 @@ using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Extensions;
 using SS.Notifier.Data.Models;
 using SS.Notifier.Data.Repository;
+using Telegram.Bot.Types;
 
 namespace SS.Notifier.Services;
 
@@ -24,22 +25,7 @@ public class ApartmentRegistryRegistryService(
         await using var transaction = await apartmentRepository.BeginTransactionAsync(cancellationToken);
         try
         {
-            // Convert models to entities, skipping those that throw exceptions
-            List<ApartmentEntity> incomingEntities = new List<ApartmentEntity>();
-            foreach (var model in apartmentModels)
-            {
-                try
-                {
-                    var entity = model.ToEntity();
-                    incomingEntities.Add(entity);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to convert apartment model with ID: {Id}. Skipping.", model.Id);
-                }
-            }
-
-            HashSet<string> incomingIds = incomingEntities.Select(e => e.Id).ToHashSet();
+            HashSet<string> incomingIds = apartmentModels.Select(e => e.Id).ToHashSet();
 
             // Get all existing entities from database
             List<ApartmentEntity> existingEntities =
@@ -49,20 +35,27 @@ public class ApartmentRegistryRegistryService(
             List<ApartmentEntity> result = new List<ApartmentEntity>();
 
             // Process each incoming entity
-            foreach (ApartmentEntity entity in incomingEntities)
+            foreach (ApartmentModel model in apartmentModels)
             {
-                if (existingIds.Contains(entity.Id))
+                if (existingIds.Contains(model.Id))
                 {
-                    // Update existing entity
-                    apartmentRepository.Update(entity);
-                    logger.LogInformation("Updated apartment with ID: {Id}", entity.Id);
+                    ApartmentEntity? entityToUpdate = await apartmentRepository.GetByIdAsync(model.Id, cancellationToken);
+                    if (entityToUpdate != null)
+                    {
+                        // Update existing entity
+                        ApartmentEntity tempEntity = model.ToEntity();
+                        tempEntity.CopyTo(entityToUpdate);
+                        apartmentRepository.Update(entityToUpdate);
+                        logger.LogInformation("Updated apartment with ID: {Id}", entityToUpdate.Id);
+                    }
                 }
                 else
                 {
                     // Add new entity
-                    ApartmentEntity tempResult = await apartmentRepository.AddAsync(entity, cancellationToken);
+                    ApartmentEntity tempEntity = model.ToEntity();
+                    ApartmentEntity tempResult = await apartmentRepository.AddAsync(tempEntity, cancellationToken);
                     result.Add(tempResult);
-                    logger.LogInformation("Added new apartment with ID: {Id}", entity.Id);
+                    logger.LogInformation("Added new apartment with ID: {Id}", tempResult.Id);
                 }
             }
 

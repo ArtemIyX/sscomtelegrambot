@@ -15,7 +15,7 @@ services:
     container_name: ss_notifier_db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "appuser"]
+      test: ["CMD", "pg_isready", "-U", "appuser", "-d", "notifierdb"]
       interval: 5s
       timeout: 5s
       retries: 10

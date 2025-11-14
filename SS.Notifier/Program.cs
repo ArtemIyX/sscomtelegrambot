@@ -51,7 +51,7 @@ public class Program
             logger.LogInformation("BOT_TOKEN={token}", botToken);
 
             /*ITelegramBotService telegramBot = services.GetRequiredService<ITelegramBotService>();
-            
+
             Task t = telegramBot.SendApartment(new ApartmentEntity()
             {
                 Id = "cejdec",
@@ -117,5 +117,6 @@ public class Program
                 services.AddTransient<IWebFetcherService, WebFetcherService>();
                 services.AddTransient<IApartmentParserService, ApartmentParserService>();
                 services.AddHostedService<UpdaterHostedService>();
+                services.AddHostedService<DebugChatHostedService>();
             });
 }

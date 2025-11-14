@@ -6,7 +6,6 @@ namespace SS.Notifier.Data.Repository;
 public class Repository<T, TId>(DbContext context) : IRepository<T, TId>
     where T : class
 {
-    protected readonly DbContext Context = context;
     protected readonly DbSet<T> DbSet = context.Set<T>();
 
     public virtual async Task<T?> GetByIdAsync(TId id, CancellationToken cancellationToken = default) =>
@@ -24,13 +23,7 @@ public class Repository<T, TId>(DbContext context) : IRepository<T, TId>
     public virtual T Update(T entity)
     {
         var entry = context.Entry(entity);
-
-        if (entry.State == EntityState.Detached)
-        {
-            DbSet.Attach(entity);
-        }
-
-        entry.State = EntityState.Modified; // Mark as modified
+        entry.State = EntityState.Modified;
 
         return entity;
     }
@@ -51,10 +44,10 @@ public class Repository<T, TId>(DbContext context) : IRepository<T, TId>
     public virtual IQueryable<T> AsQueryable() => DbSet.AsQueryable();
 
     public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        await Context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
-        return Context.Database.BeginTransactionAsync(cancellationToken);
+        return context.Database.BeginTransactionAsync(cancellationToken);
     }
 }

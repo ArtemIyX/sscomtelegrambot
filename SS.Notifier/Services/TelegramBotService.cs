@@ -23,7 +23,8 @@ public class TelegramBotService(
     public async Task SendApartment(ApartmentEntity entity, List<string> photos, CancellationToken cancellationToken)
     {
         string region = entity.Region;
-        if (!appSettings.Value.Chats.TryGetValue(region, out var chatId))
+        long chatId = appSettings.Value.Telegram.Chat;
+        if (!appSettings.Value.Telegram.Threads.TryGetValue(region, out int threadId))
         {
             throw new ArgumentException($"{region} not found");
         }
@@ -35,21 +36,22 @@ public class TelegramBotService(
             logger.LogInformation("No photos found for '{id}' in '{region}'", entity.Id,
                 entity.Region);
             logger.LogInformation("Sending telegram: '{id}' in '{region}' to chat '{chatId}'", entity.Id,
-                entity.Region, chatId);
+                entity.Region, threadId);
             await telegramBotClient.SendMessage(
                 new ChatId(chatId),
                 caption,
+                messageThreadId: threadId,
                 parseMode: ParseMode.Markdown,
                 cancellationToken: cancellationToken);
-            logger.LogInformation("[{chatId}] -> {text}", chatId, caption);
+            logger.LogInformation("[{chatId}] -> {text}", threadId, caption);
             return;
         }
-        
+
         if (photos.Count > 8)
             photos = photos.Take(photos.Count - 8).ToList(); // Keep first 8
-        
+
         List<IAlbumInputMedia> media = new List<IAlbumInputMedia>();
-        
+
         for (int i = 0; i < photos.Count; i++)
         {
             var photoPath = photos[i];
@@ -81,11 +83,12 @@ public class TelegramBotService(
         }
 
         logger.LogInformation("Sending telegram: '{id}' in '{region}' to chat '{chatId}' with '{n}' photos", entity.Id,
-            entity.Region, chatId, photos.Count);
+            entity.Region, threadId, photos.Count);
         await telegramBotClient.SendMediaGroup(
             chatId: new ChatId(chatId),
             media: media,
+            messageThreadId: threadId,
             cancellationToken: cancellationToken);
-        logger.LogInformation("[{chatId}] -> {text}", chatId, caption);
+        logger.LogInformation("[{chatId}] -> {text}", threadId, caption);
     }
 }
