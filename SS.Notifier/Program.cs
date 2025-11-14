@@ -10,6 +10,7 @@ using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Repository;
 using SS.Notifier.Data.Settings;
 using SS.Notifier.Services;
+using SS.Parser;
 using Telegram.Bot;
 
 namespace SS.Notifier;
@@ -49,7 +50,7 @@ public class Program
             string? botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
             logger.LogInformation("BOT_TOKEN={token}", botToken);
 
-            ITelegramBotService telegramBot = services.GetRequiredService<ITelegramBotService>();
+            /*ITelegramBotService telegramBot = services.GetRequiredService<ITelegramBotService>();
             
             Task t = telegramBot.SendApartment(new ApartmentEntity()
             {
@@ -69,7 +70,7 @@ public class Program
                 "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356871.800.jpg",
                 "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356872.800.jpg",
                 "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356873.800.jpg"
-            });
+            });*/
         }
 
 
@@ -111,7 +112,10 @@ public class Program
                 services.Configure<AppSettings>(context.Configuration);
                 services.AddDbContext<NotifierDbContext>(opt => opt.UseNpgsql(connStr));
                 services.AddTransient<IRepository<ApartmentEntity, string>, ApartmentRepository>();
-                services.AddTransient<IApartmentService, ApartmentService>();
-                services.AddSingleton<ITelegramBotService, TelegramBotService>();
+                services.AddTransient<IApartmentRegistryService, ApartmentRegistryRegistryService>();
+                services.AddTransient<ITelegramBotService, TelegramBotService>();
+                services.AddTransient<IWebFetcherService, WebFetcherService>();
+                services.AddTransient<IApartmentParserService, ApartmentParserService>();
+                services.AddHostedService<UpdaterHostedService>();
             });
 }

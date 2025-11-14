@@ -18,7 +18,7 @@ public class Program
         ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
         IWebFetcherService fetcher = host.Services.GetRequiredService<IWebFetcherService>();
         IApartmentParserService parser = host.Services.GetRequiredService<IApartmentParserService>();
-        var container = await fetcher.FetchApartments(new ApartmentFilter()
+        var container = await fetcher.FetchApartmentsAsync(new ApartmentFilter()
         {
             MinPrice = 100,
             MaxPrice = 350,

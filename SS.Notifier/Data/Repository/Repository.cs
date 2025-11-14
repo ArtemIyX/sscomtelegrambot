@@ -23,7 +23,15 @@ public class Repository<T, TId>(DbContext context) : IRepository<T, TId>
 
     public virtual T Update(T entity)
     {
-        DbSet.Update(entity);
+        var entry = context.Entry(entity);
+
+        if (entry.State == EntityState.Detached)
+        {
+            DbSet.Attach(entity);
+        }
+
+        entry.State = EntityState.Modified; // Mark as modified
+
         return entity;
     }
 

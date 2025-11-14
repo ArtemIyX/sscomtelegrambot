@@ -15,7 +15,8 @@ public interface ITelegramBotService
         CancellationToken cancellationToken = default);
 }
 
-public class TelegramBotService(ILogger<TelegramBotService> logger,
+public class TelegramBotService(
+    ILogger<TelegramBotService> logger,
     ITelegramBotClient telegramBotClient,
     IOptions<AppSettings> appSettings) : ITelegramBotService
 {
@@ -27,33 +28,35 @@ public class TelegramBotService(ILogger<TelegramBotService> logger,
             throw new ArgumentException($"{region} not found");
         }
 
-        /*string text = entity.ToTelegramString();
-
-        await telegramBotClient.SendMessage(new ChatId((chatId)), text, ParseMode.Markdown,
-            cancellationToken: cancellationToken);*/
-        
+        string caption = entity.ToTelegramString();
         if (!photos.Any())
         {
             // Fallback: just send text if no photos
-            string text = entity.ToTelegramString();
+            logger.LogInformation("No photos found for '{id}' in '{region}'", entity.Id,
+                entity.Region);
+            logger.LogInformation("Sending telegram: '{id}' in '{region}' to chat '{chatId}'", entity.Id,
+                entity.Region, chatId);
             await telegramBotClient.SendMessage(
-                new ChatId(chatId), 
-                text, 
-                parseMode: ParseMode.Markdown, 
+                new ChatId(chatId),
+                caption,
+                parseMode: ParseMode.Markdown,
                 cancellationToken: cancellationToken);
+            logger.LogInformation("[{chatId}] -> {text}", chatId, caption);
             return;
         }
         
-        string caption = entity.ToTelegramString();
-        var media = new List<IAlbumInputMedia>();
-
+        if (photos.Count > 8)
+            photos = photos.Take(photos.Count - 8).ToList(); // Keep first 8
+        
+        List<IAlbumInputMedia> media = new List<IAlbumInputMedia>();
+        
         for (int i = 0; i < photos.Count; i++)
         {
             var photoPath = photos[i];
             InputMediaPhoto mediaPhoto;
 
             // Check if it's a URL or local file
-            if (Uri.TryCreate(photoPath, UriKind.Absolute, out var uri) && 
+            if (Uri.TryCreate(photoPath, UriKind.Absolute, out var uri) &&
                 (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
             {
                 // Remote URL
@@ -72,26 +75,17 @@ public class TelegramBotService(ILogger<TelegramBotService> logger,
             // Only first photo gets the caption
             if (i == 0)
                 mediaPhoto.Caption = caption;
-        
+
             mediaPhoto.ParseMode = ParseMode.Markdown;
             media.Add(mediaPhoto);
         }
 
+        logger.LogInformation("Sending telegram: '{id}' in '{region}' to chat '{chatId}' with '{n}' photos", entity.Id,
+            entity.Region, chatId, photos.Count);
         await telegramBotClient.SendMediaGroup(
             chatId: new ChatId(chatId),
             media: media,
             cancellationToken: cancellationToken);
-    }
-
-    private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
-        CancellationToken cancellationToken)
-    {
-        logger.LogWarning("Update received: {update}", update.Message.Chat.Id);
-    }
-
-    private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception,
-        CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
+        logger.LogInformation("[{chatId}] -> {text}", chatId, caption);
     }
 }

@@ -7,16 +7,16 @@ using SS.Notifier.Data.Repository;
 
 namespace SS.Notifier.Services;
 
-public interface IApartmentService
+public interface IApartmentRegistryService
 {
     public Task<ApartmentResult> UpdateAsync(List<ApartmentModel> apartmentModels,
         CancellationToken cancellationToken = default);
 }
 
-public class ApartmentService(
-    ILogger<ApartmentService> logger,
+public class ApartmentRegistryRegistryService(
+    ILogger<ApartmentRegistryRegistryService> logger,
     IRepository<ApartmentEntity, string> apartmentRepository)
-    : IApartmentService
+    : IApartmentRegistryService
 {
     public async Task<ApartmentResult> UpdateAsync(List<ApartmentModel> apartmentModels,
         CancellationToken cancellationToken = default)

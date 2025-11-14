@@ -15,7 +15,7 @@ public static class ApartmentExtensions
             Area = model.ParseArea(),
             Floor = model.ParseFloor(),
             MaxFloor = model.ParseMaxFloor(),
-            Link = model.Link,
+            Url = model.Link,
             Region = model.Region,
             Rooms = model.ParseRooms(),
             Series = model.Series
@@ -46,7 +46,7 @@ public static class ApartmentExtensions
 
     public static string ToTelegramString(this ApartmentEntity entity)
     {
-        string link = entity.Link;
+        string link = entity.Url;
         //var region = Escape(entity.Region);
         string series = string.IsNullOrWhiteSpace(entity.Series) ? "none" : Escape(entity.Series);
 

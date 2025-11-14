@@ -5,28 +5,44 @@ namespace SS.Parser;
 
 public interface IWebFetcherService
 {
-    public Task<ApartmentContainer> FetchApartments(ApartmentFilter? filter = null,
+    public Task<ApartmentContainer> FetchApartmentsAsync(ApartmentFilter? filter = null,
         CancellationToken cancellationToken = default);
+
+    public Task<List<string>> FetchPhotosAsync(string apartmentUrl, CancellationToken cancellationToken = default);
 }
 
-public class WebFetcherService : IWebFetcherService
+public class WebFetcherService(
+    ILogger<WebFetcherService> logger,
+    IApartmentParserService apartmentParserService,
+    IHttpClientFactory httpClientFactory)
+    : IWebFetcherService
 {
-    private readonly ILogger<WebFetcherService> _logger;
-    private readonly IApartmentParserService _apartmentParserService;
-    private readonly IHttpClientFactory _httpClientFactory;
-
     private readonly string _searchUrl = @"https://www.ss.lv/en/real-estate/flats/riga/all/hand_over/";
 
-    public WebFetcherService(ILogger<WebFetcherService> logger,
-        IApartmentParserService apartmentParserService,
-        IHttpClientFactory httpClientFactory)
+    public async Task<List<string>> FetchPhotosAsync(string apartmentUrl, CancellationToken cancellationToken = default)
     {
-        _logger = logger;
-        _apartmentParserService = apartmentParserService;
-        _httpClientFactory = httpClientFactory;
+        HttpClient httpClient =
+            httpClientFactory.CreateClient($"http_client_photo_fetcher_{Guid.NewGuid().ToString()}");
+        
+        HttpResponseMessage response = await httpClient.GetAsync(apartmentUrl, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogError(
+                "FetchPhotosAsync request failed. Status: {StatusCode}, Reason: {ReasonPhrase}, Content: {Content}, URL: {Url}",
+                response.StatusCode,
+                response.ReasonPhrase,
+                errorContent,
+                apartmentUrl);
+            return [];
+        }
+
+        string html = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        return await apartmentParserService.ParseApartmentPhotoAsync(html, cancellationToken);
     }
 
-    public async Task<ApartmentContainer> FetchApartments(ApartmentFilter? filter = null,
+    public async Task<ApartmentContainer> FetchApartmentsAsync(ApartmentFilter? filter = null,
         CancellationToken cancellationToken = default)
     {
         var container = new ApartmentContainer(); // Assume this is thread-safe or wrap in ConcurrentDictionary
@@ -35,11 +51,11 @@ public class WebFetcherService : IWebFetcherService
         var semaphore = new SemaphoreSlim(concurrencyLevel);
 
         // Step 1: Fetch page 1 sequentially
-        _logger.LogInformation("Fetching page 1 sequentially");
+        logger.LogInformation("Fetching page 1 sequentially");
         var firstPageList = await FetchSinglePage(1, cancellationToken);
         if (firstPageList == null || firstPageList.Count == 0)
         {
-            _logger.LogInformation("Page 1 failed or empty, finishing");
+            logger.LogInformation("Page 1 failed or empty, finishing");
             return container;
         }
 
@@ -91,20 +107,20 @@ public class WebFetcherService : IWebFetcherService
             {
                 if (list == null)
                 {
-                    _logger.LogWarning("Page {page} failed, skipping", page);
+                    logger.LogWarning("Page {page} failed, skipping", page);
                     continue; // Or treat as stop?
                 }
 
                 if (list.Count == 0)
                 {
-                    _logger.LogInformation("Page {page} has no flats, finishing", page);
+                    logger.LogInformation("Page {page} has no flats, finishing", page);
                     stop = true;
                     break;
                 }
 
                 if (list.GetCombinedHashCode() == firstPageHash)
                 {
-                    _logger.LogInformation("Page {page} has same flats as first page, finishing", page);
+                    logger.LogInformation("Page {page} has same flats as first page, finishing", page);
                     stop = true;
                     break;
                 }
@@ -129,13 +145,13 @@ public class WebFetcherService : IWebFetcherService
 
     private async Task<List<ApartmentModel>?> FetchSinglePage(int index, CancellationToken cancellationToken = default)
     {
-        HttpClient httpClient = _httpClientFactory.CreateClient($"http_client_{index}");
+        HttpClient httpClient = httpClientFactory.CreateClient($"http_client_{index}");
         string url = MakeSearchUrl(index);
         HttpResponseMessage response = await httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             string errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError(
+            logger.LogError(
                 "FetchSinglePage request failed. Status: {StatusCode}, Reason: {ReasonPhrase}, Content: {Content}, URL: {Url}",
                 response.StatusCode,
                 response.ReasonPhrase,
@@ -145,7 +161,7 @@ public class WebFetcherService : IWebFetcherService
         }
 
         string htmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        List<ApartmentModel> list = await _apartmentParserService.ParseApartmentsAsync(htmlContent, cancellationToken);
+        List<ApartmentModel> list = await apartmentParserService.ParseApartmentsAsync(htmlContent, cancellationToken);
         return list;
     }
 }

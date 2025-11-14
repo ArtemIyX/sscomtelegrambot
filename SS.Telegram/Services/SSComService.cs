@@ -53,7 +53,7 @@ public class SSComService : IAsyncDisposable
             _logger.LogInformation("Starting web fetcher");
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
-            ApartmentContainer res = await _webFetcherService.FetchApartments(cancellationToken: token);
+            ApartmentContainer res = await _webFetcherService.FetchApartmentsAsync(cancellationToken: token);
             _logger.LogInformation("Web fetcher finished, found {num} flats in RIGA", res.Map.Count);
             _lastApartmentContainer = _currentApartmentContainer;
             _currentApartmentContainer = res;

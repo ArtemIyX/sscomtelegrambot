@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace SS.Notifier.Data.Entity;
 
@@ -20,10 +21,13 @@ public class ApartmentEntity
 
     [Required] [MaxLength(64)] public string Region { get; set; } = string.Empty;
 
-    [Required] [MaxLength(500)] public string Link { get; set; } = string.Empty;
+    [Required] [MaxLength(500)] public string Url { get; set; } = string.Empty;
 
     public decimal Price { get; set; }
 
+    [JsonIgnore]
     public DateTime CreatedAt { get; set; }
+    
+    [JsonIgnore]
     public DateTime? UpdatedAt { get; set; }
 }
