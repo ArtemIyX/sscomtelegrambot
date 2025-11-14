@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SS.Data;
 using SS.Notifier.Data.Entity;
 using SS.Notifier.Data.Extensions;
@@ -25,29 +26,19 @@ public class ApartmentRegistryRegistryService(
         await using var transaction = await apartmentRepository.BeginTransactionAsync(cancellationToken);
         try
         {
-            HashSet<string> incomingIds = apartmentModels.Select(e => e.Id).ToHashSet();
-
-            // Get all existing entities from database
-            List<ApartmentEntity> existingEntities =
-                (await apartmentRepository.GetAllAsync(cancellationToken)).ToList();
-            HashSet<string> existingIds = existingEntities.Select(e => e.Id).ToHashSet();
-
             List<ApartmentEntity> result = new List<ApartmentEntity>();
-
+        
             // Process each incoming entity
             foreach (ApartmentModel model in apartmentModels)
             {
-                if (existingIds.Contains(model.Id))
+                ApartmentEntity? entityToUpdate = await apartmentRepository.GetByIdAsync(model.Id, cancellationToken);
+                if (entityToUpdate != null)
                 {
-                    ApartmentEntity? entityToUpdate = await apartmentRepository.GetByIdAsync(model.Id, cancellationToken);
-                    if (entityToUpdate != null)
-                    {
-                        // Update existing entity
-                        ApartmentEntity tempEntity = model.ToEntity();
-                        tempEntity.CopyTo(entityToUpdate);
-                        apartmentRepository.Update(entityToUpdate);
-                        logger.LogInformation("Updated apartment with ID: {Id}", entityToUpdate.Id);
-                    }
+                    // Update existing entity
+                    ApartmentEntity tempEntity = model.ToEntity();
+                    tempEntity.CopyTo(entityToUpdate);
+                    apartmentRepository.Update(entityToUpdate);
+                    logger.LogInformation("Updated apartment with ID: {Id}", entityToUpdate.Id);
                 }
                 else
                 {
@@ -58,15 +49,25 @@ public class ApartmentRegistryRegistryService(
                     logger.LogInformation("Added new apartment with ID: {Id}", tempResult.Id);
                 }
             }
-
-            // Remove entities that are not in the incoming list (outdated)
+            HashSet<string> incomingIds = apartmentModels.Select(e => e.Id).ToHashSet();
+            var entitiesToDelete = await apartmentRepository.AsQueryable()
+                .Where(entity => !incomingIds.Contains(entity.Id))
+                .ToListAsync(cancellationToken);
+            
+            if (entitiesToDelete.Any())
+            {
+                apartmentRepository.DeleteRange(entitiesToDelete);
+                logger.LogInformation("Deleted {Count} outdated apartments.", entitiesToDelete.Count);
+            }
+            /*// Remove entities that are not in the incoming list (outdated)
             foreach (var existingEntity in existingEntities)
             {
+                // Skip existing
                 if (incomingIds.Contains(existingEntity.Id)) continue;
 
                 await apartmentRepository.DeleteAsync(existingEntity.Id, cancellationToken);
                 logger.LogInformation("Deleted outdated apartment with ID: {Id}", existingEntity.Id);
-            }
+            }*/
 
             // Save all changes
             await apartmentRepository.SaveChangesAsync(cancellationToken);

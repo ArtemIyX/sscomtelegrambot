@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using SS.Notifier.Data.Entity;
 
 namespace SS.Notifier.Data.Repository;
 
@@ -37,9 +38,7 @@ public class Repository<T, TId>(DbContext context) : IRepository<T, TId>
         DbSet.Remove(entity);
         return true;
     }
-
-    public virtual async Task<T?> FindByKeyAsync(TId id, CancellationToken cancellationToken = default) =>
-        await DbSet.FindAsync(id, cancellationToken);
+    
 
     public virtual IQueryable<T> AsQueryable() => DbSet.AsQueryable();
 
@@ -49,5 +48,10 @@ public class Repository<T, TId>(DbContext context) : IRepository<T, TId>
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
         return context.Database.BeginTransactionAsync(cancellationToken);
+    }
+
+    public void DeleteRange(List<T> entitiesToDelete)
+    {
+        DbSet.RemoveRange(entitiesToDelete);
     }
 }

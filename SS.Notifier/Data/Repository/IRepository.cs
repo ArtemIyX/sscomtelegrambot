@@ -1,18 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using SS.Notifier.Data.Entity;
 
 namespace SS.Notifier.Data.Repository;
 
 public interface IRepository<T, TId> where T : class
 {
-    Task<T?> GetByIdAsync(TId id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
-    T Update(T entity);
-    Task<bool> DeleteAsync(TId id, CancellationToken cancellationToken = default);
-    Task<T?> FindByKeyAsync(TId id, CancellationToken cancellationToken = default);
-    IQueryable<T> AsQueryable();
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    public Task<T?> GetByIdAsync(TId id, CancellationToken cancellationToken = default);
+    public Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
+    public Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
+    public T Update(T entity);
+    public Task<bool> DeleteAsync(TId id, CancellationToken cancellationToken = default);
+    public IQueryable<T> AsQueryable();
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     
-    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 
+    public void DeleteRange(List<T> entitiesToDelete);
 }
