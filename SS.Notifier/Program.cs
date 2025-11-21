@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,6 +30,7 @@ public class Program
 
             try
             {
+                logger.LogInformation("SS.Notifier version: {Version}", Assembly.GetEntryAssembly()?.GetName().Version);
                 logger.LogInformation("Connecting to database...");
                 NotifierDbContext context = services.GetRequiredService<NotifierDbContext>();
 
@@ -49,28 +51,6 @@ public class Program
 
             string? botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
             logger.LogInformation("BOT_TOKEN={token}", botToken);
-
-            /*ITelegramBotService telegramBot = services.GetRequiredService<ITelegramBotService>();
-
-            Task t = telegramBot.SendApartment(new ApartmentEntity()
-            {
-                Id = "cejdec",
-                Area = 40.0m,
-                CreatedAt = DateTime.Now,
-                Floor = 3,
-                MaxFloor = 5,
-                Link = "https://www.ss.lv/msg/en/real-estate/flats/riga/purvciems/cejdec.html",
-                Price = 400.0m,
-                Region = "purvciems",
-                Rooms = 1,
-                Series = "Sm.fam."
-            }, new List<string>()
-            {
-                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356870.800.jpg",
-                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356871.800.jpg",
-                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356872.800.jpg",
-                "https://i.ss.lv/gallery/8/1428/356785/flats-riga-purvciems-71356873.800.jpg"
-            });*/
         }
 
 
