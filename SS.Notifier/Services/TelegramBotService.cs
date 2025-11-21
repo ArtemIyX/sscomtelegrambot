@@ -48,7 +48,7 @@ public class TelegramBotService(
         }
 
         if (photos.Count > 8)
-            photos = photos.Take(photos.Count - 8).ToList(); // Keep first 8
+            photos = photos.Take(8).ToList(); // Keep first 8
 
         List<IAlbumInputMedia> media = new List<IAlbumInputMedia>();
 

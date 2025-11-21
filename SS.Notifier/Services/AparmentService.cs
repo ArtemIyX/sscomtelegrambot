@@ -27,7 +27,7 @@ public class ApartmentRegistryRegistryService(
         try
         {
             List<ApartmentEntity> result = new List<ApartmentEntity>();
-        
+
             // Process each incoming entity
             foreach (ApartmentModel model in apartmentModels)
             {
@@ -35,10 +35,19 @@ public class ApartmentRegistryRegistryService(
                 if (entityToUpdate != null)
                 {
                     // Update existing entity
-                    ApartmentEntity tempEntity = model.ToEntity();
-                    tempEntity.CopyTo(entityToUpdate);
-                    apartmentRepository.Update(entityToUpdate);
-                    logger.LogInformation("Updated apartment with ID: {Id}", entityToUpdate.Id);
+                    ApartmentEntity newEntity = model.ToEntity();
+
+                    if (entityToUpdate.Price != newEntity.Price
+                        || entityToUpdate.Area != newEntity.Area)
+                    {
+                        newEntity.CopyTo(entityToUpdate);
+                        apartmentRepository.Update(entityToUpdate);
+                        logger.LogInformation("Updated apartment '{Id}':" +
+                                              "\nPrice: {beforePrice} -> {afterPrice}" +
+                                              "\nArea: {beforeArea} -> {afterArea}", entityToUpdate.Id,
+                            entityToUpdate.Price, newEntity.Price,
+                            entityToUpdate.Area, newEntity.Area);
+                    }
                 }
                 else
                 {
@@ -49,11 +58,12 @@ public class ApartmentRegistryRegistryService(
                     logger.LogInformation("Added new apartment with ID: {Id}", tempResult.Id);
                 }
             }
+
             HashSet<string> incomingIds = apartmentModels.Select(e => e.Id).ToHashSet();
             var entitiesToDelete = await apartmentRepository.AsQueryable()
                 .Where(entity => !incomingIds.Contains(entity.Id))
                 .ToListAsync(cancellationToken);
-            
+
             if (entitiesToDelete.Any())
             {
                 apartmentRepository.DeleteRange(entitiesToDelete);

@@ -17,13 +17,16 @@ public class UpdaterHostedService(
     IWebFetcherService webFetcherService,
     IOptions<AppSettings> appSettings) : IHostedService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromHours(1);
+    private readonly TimeSpan _interval = TimeSpan.FromMinutes(15);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting updater...");
 
         await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+
+        logger.LogInformation("Updater has started successfully!");
+
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -81,7 +84,12 @@ public class UpdaterHostedService(
 
             logger.LogInformation("{n} apartments are new", updateList.Container.Count);
 
-            await ProcessApartments(updateList, cancellationToken);
+            if (updateList.Container.Count != 0)
+            {
+                await ProcessApartments(updateList, cancellationToken);
+            }
+
+            logger.LogInformation("Waiting for new apartments...");
         }
         catch (Exception ex)
         {
@@ -121,6 +129,8 @@ public class UpdaterHostedService(
                 }
             }
         }
+
+        logger.LogInformation("Processed {n} apartments", updateList.Container.Count);
     }
 
     protected async Task ProcessNewApartment(string region, ApartmentEntity entity,
