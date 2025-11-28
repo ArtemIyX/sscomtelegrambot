@@ -17,7 +17,6 @@ public class UpdaterHostedService(
     IWebFetcherService webFetcherService,
     IOptions<AppSettings> appSettings) : IHostedService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(15);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -39,8 +38,9 @@ public class UpdaterHostedService(
                 logger.LogError(ex, "Failed to update");
             }
 
+            TimeSpan interval = TimeSpan.FromMinutes(appSettings.Value.Telegram.DelayMinutes);
             // Wait exactly one hour for the next tick
-            await Task.Delay(_interval, cancellationToken);
+            await Task.Delay(interval, cancellationToken);
         }
     }
 

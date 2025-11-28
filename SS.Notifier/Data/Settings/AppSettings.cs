@@ -15,6 +15,7 @@ public class AppSettings
 
     public class TelegramSettings
     {
+        public int DelayMinutes { get; set; } = 30;
         public long Chat { get; set; } = 0;
         public Dictionary<string, int> Threads { get; set; } = new Dictionary<string, int>();
         public List<string> Regions => Threads.Keys.ToHashSet().ToList();

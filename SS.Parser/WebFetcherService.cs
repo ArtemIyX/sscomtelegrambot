@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SS.Data;
 
 namespace SS.Parser;
@@ -17,7 +18,7 @@ public class WebFetcherService(
     IHttpClientFactory httpClientFactory)
     : IWebFetcherService
 {
-    private readonly string _searchUrl = @"https://www.ss.lv/en/real-estate/flats/riga/all/hand_over/";
+    private readonly string _searchUrl = @"https://www.ss.com/en/real-estate/flats/riga/all/hand_over/";
 
     public async Task<List<string>> FetchPhotosAsync(string apartmentUrl, CancellationToken cancellationToken = default)
     {
